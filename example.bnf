@@ -1,0 +1,51 @@
+TOKEN
+{
+	<TYPE: "int" | "float"> |
+	<IDENTIFIER: ("_" | <ALPHA>) ("_" | <ALNUM>)*> |
+	<#ALPHA: ["a"-"z","A"-"Z"]> |
+	<#DIGIT: ["0"-"9"]> |
+	<#ALNUM: <ALPHA> | <DIGIT>> |
+	<INT: (<DIGIT>)+> |
+	<FLOAT: <INT> ("." (<DIGIT>)* (<EXP>)? | <EXP>) | "." (<INT>)+ (<EXP>)?> |
+	<#EXP: ["e","E"] (["+","-"])? <INT>>
+}
+
+void statement():
+{
+	declaration() |
+	expression() ("," expression())* ";"
+}
+
+void declaration():
+{
+	<TYPE> declarator() ("," declarator())* ";"
+}
+
+void declarator():
+{
+	<IDENTIFIER> ("=" expression())?
+}	
+
+void expression():
+{
+	LOOKAHEAD(2) <IDENTIFIER> "=" expression() |
+	additive_expression()
+}
+
+void additive_expression():
+{
+	multiplicative_expression() ("+" multiplicative_expression())*
+}
+
+void multiplicative_expression():
+{
+	primary_expression() ("*" primary_expression())*
+}
+
+void primary_expression():
+{
+	"(" expression() ")" |
+	<IDENTIFIER> |
+	<INT> |
+	<FLOAT>
+}
