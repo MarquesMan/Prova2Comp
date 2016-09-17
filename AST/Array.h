@@ -6,19 +6,25 @@
 #include "Value.h"
 #endif
 
-#ifndef __Members_h
-#define __Members_h
+#ifndef __Array_h
+#define __Array_h
 
-using namespace AST;
+#include <list>
 
-class Array : public ValueNode
-{
-public:
-	void write(Writer&) const;
+namespace AST
+{ // begin namespace AST
 
-protected:
-	template<Value> ValueList list;
+	class Array : public ValueNode
+	{
+	public:
+		void write(Writer&) const;
+		Array() : ValueList(NULL) {};
+		void addTolist(ObjectPtr<Value>);
+	protected:
+		std::list<ObjectPtr<Value>> ValueList;
 
-};
+	};
 
+}
 #endif // Value_h
+

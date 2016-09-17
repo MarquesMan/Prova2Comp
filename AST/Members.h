@@ -9,16 +9,22 @@
 #ifndef __Members_h
 #define __Members_h
 
-using namespace AST;
+#include <list>
 
-class Members : public ValueNode
-{
-public:
-	void write(Writer&) const;
+namespace AST
+{ // begin namespace AST
 
-protected:
-	template<Pair> PairList list;
+	class Members : public ValueNode
+	{
+	public:
+		void write(Writer&) const;
+		Members() : PairList(NULL) {};
+		void addTolist(ObjectPtr<Pair>);
 
-};
+	protected:
+		std::list<ObjectPtr<Pair>> PairList;
+
+	};
+}
 
 #endif // Value_h

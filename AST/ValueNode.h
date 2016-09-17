@@ -14,7 +14,10 @@ using namespace AST;
 class ValueNode : public Node
 {
 public:
-	void write(Writer&) const;
+	void write(Writer&) const {};
+	ValueNode() : lexeme("") {};
+	ValueNode(String lexemeIn) : lexeme(lexemeIn) {};
+
 
 protected:
 	String lexeme;

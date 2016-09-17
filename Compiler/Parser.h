@@ -144,14 +144,16 @@ protected:
   DECLARE_KEYWORD_TABLE(Parser);
   DECLARE_ERROR_MESSAGE_TABLE(Parser);
 
-  void start(ObjectPtr< Json > json);
+  void start(ObjectPtr< Json >);
   
-  void _VALUE();
-  void _OBJECT();
-  void _MEMBERS();
-  void _PAIR();
-  void _ARRAY();
-  void _ELEMENTS();
+  void _VALUE(ObjectPtr< Value >);
+  void _VALUE(ObjectPtr< ValueNode >);
+
+  void _OBJECT(ObjectPtr< ValueNode >);
+  void _MEMBERS(ObjectPtr< ValueNode >);
+  void _PAIR(ObjectPtr<ValueNode>);
+  void _ARRAY(ObjectPtr< ValueNode >);
+  void _ELEMENTS(ObjectPtr< ValueNode >);
 
   int num_Objetos, num_MembrosObjetos, num_Arrays, num_ElementosArrays;
 

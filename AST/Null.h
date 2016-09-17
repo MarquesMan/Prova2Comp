@@ -2,17 +2,19 @@
 #include "ValueNode.h"
 #endif
 
-#ifndef __String_h
-#define __String_h
+#ifndef __Null_h
+#define __Null_h
 
-using namespace AST;
+namespace AST
+{ // begin namespace AST
 
-class Null : public ValueNode
-{
-public:
-	void write(Writer&) const;
+	class Null : public ValueNode
+	{
+	public:
+		void write(Writer&) const;
+		Null() : ValueNode("Null") {};
 
-
-};
+	};
+}
 
 #endif // Value_h

@@ -15,6 +15,14 @@
       <Filter>AST</Filter>
     </ClCompile>
     <ClCompile Include="Writer.cpp" />
+    <ClCompile Include="AST\Members.cpp" />
+    <ClCompile Include="AST\Array.cpp" />
+    <ClCompile Include="AST\False.cpp" />
+    <ClCompile Include="AST\String.cpp" />
+    <ClCompile Include="AST\True.cpp" />
+    <ClCompile Include="AST\Null.cpp" />
+    <ClCompile Include="AST\Pair.cpp" />
+    <ClCompile Include="AST\Number.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Compiler\Buffer.h" />
@@ -64,6 +72,9 @@
       <Filter>AST</Filter>
     </ClInclude>
     <ClInclude Include="Writer.h" />
+    <ClInclude Include="AST\Number.h">
+      <Filter>AST</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="AST">

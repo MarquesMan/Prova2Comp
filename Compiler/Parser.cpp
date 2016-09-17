@@ -2,7 +2,23 @@
 #include <stdlib.h>
 #include <iostream>
 
+
 #include "FileBuffer.h"
+#include "AST\Value.h"
+#include "AST\ValueNode.h"
+
+#include "AST\Object.h"
+#include "AST\Array.h"
+#include "AST\False.h"
+#include "AST\Null.h"
+#include "AST\String.h"
+#include "AST\Pair.h"
+#include "AST\True.h"
+#include "AST\Number.h"
+
+#include "AST\Members.h"
+
+
 #include "Parser.h"
 
 using namespace Compiler;
@@ -92,7 +108,7 @@ Parser::parse(const char* fileName)
 
 void Compiler::Parser::PrintInfo()
 {
-  std::cout << "Objetos: \t" << num_Objetos << "\nMembros: \t" << num_MembrosObjetos << "\nArrays: \t" << num_Arrays << "\nElementos: \t" << num_ElementosArrays;
+  std::cout << "Objetos: \t" << num_Objetos << "\nMembros: \t" << num_MembrosObjetos << "\nArrays: \t" << num_Arrays << "\nElementos: \t" << num_ElementosArrays << std::endl;
 }
 
 Parser::~Parser()
@@ -332,26 +348,60 @@ Parser::start(ObjectPtr< Json > json)
 //[]----------------------------------------------------[]
 {
   num_Objetos = num_MembrosObjetos = num_Arrays = num_ElementosArrays = 0;
-  _VALUE();
+  
+  ObjectPtr<Value> Valor = new AST::Value(); // Instancia Value
+  json->setValue(Valor);// Adiciona Value a Json
+  
+  _VALUE(Valor);
   PrintInfo();
 }
 
-void Compiler::Parser::_VALUE()
+void Compiler::Parser::_VALUE(ObjectPtr< Value > Value)
 {
+
+
   //Object
   if (token->type == '{') {
-    _OBJECT();
+	ObjectPtr< ValueNode > Object = new AST::Members();
+	Value->setValue(Object);
+    _OBJECT(Object);
     return;
   }
 
   //Array
   if (token->type == '[') {
-    _ARRAY();
+	ObjectPtr< ValueNode > Array = new AST::Array();
+	Value->setValue(Array);
+    _ARRAY(Array);
     return;
   }
 
   //String, Number, True, False, Null
   if (token->type == T_STRING || token->type == T_NUMBER || token->type == T_TRUE || token->type == T_FALSE || token->type == T_NULL) {
+
+	  if (token->type == T_STRING) {
+		  ObjectPtr< ValueNode > String = new AST::String_AST(token->lexeme);
+		  Value->setValue(String);
+	  }
+	  else if (token->type == T_NUMBER) {
+		  ObjectPtr< ValueNode > Number = new AST::Number(token->lexeme);
+		  Value->setValue(Number);
+	  
+	  }
+	  else if (token->type == T_TRUE) {
+		  ObjectPtr< ValueNode > Number = new AST::True();
+		  Value->setValue(Number);
+	  }
+	  else if (token->type == T_FALSE) {
+		  ObjectPtr< ValueNode > False = new AST::False();
+		  Value->setValue(False);
+	  }
+	  else if (token->type == T_NULL) {
+		  ObjectPtr< ValueNode > Number = new AST::Null();
+		  Value->setValue(Number);
+	  }
+
+
     advance();
     return;
   }
@@ -360,7 +410,8 @@ void Compiler::Parser::_VALUE()
   error(UNEXPECTED_CHARACTER, token->type);
 }
 
-void Compiler::Parser::_OBJECT()
+
+void Compiler::Parser::_OBJECT(ObjectPtr< ValueNode > Object)
 {
   num_Objetos++;
   match('{');
@@ -370,51 +421,73 @@ void Compiler::Parser::_OBJECT()
     return;
   }
   //Entao o objeto não é vazio. Chame membros
-  _MEMBERS();
+  _MEMBERS(Object);
 
   //Assim que retornar de membros, de match no '}'
   match('}');
 }
 
-void Compiler::Parser::_MEMBERS()
+void Compiler::Parser::_MEMBERS(ObjectPtr< ValueNode > Object)
 {
   num_MembrosObjetos++;
-  _PAIR();
+  _PAIR(Object);
   while (token->type == ',') {
     advance();
     num_MembrosObjetos++;
-    _PAIR();
+    _PAIR(Object);
   }
 }
 
-void Compiler::Parser::_PAIR()
+void Compiler::Parser::_PAIR(ObjectPtr<ValueNode> members)
 {
-  match(T_STRING);
-  match(':');
-  _VALUE();
+	
+	ObjectPtr<Pair> par = new Pair(token->lexeme);	// Gera o par e a String de id dele 
+	match(T_STRING);
+	match(':');
+	
+	Members* Member = dynamic_cast<Members*>((ValueNode*)members); // cast para usar o members como uma variavel Members	
+	Member->addTolist(par);// Adiciona o par criado ao members
+
+	ObjectPtr<Value> parValue = new Value();// Cria um Value para o par
+	par->setValuePointer(parValue);// seta o Value para o par
+
+	_VALUE(parValue);// entramos com ele para um novo nivel de recursao 
+
 }
 
-void Compiler::Parser::_ARRAY()
+void Compiler::Parser::_ARRAY(ObjectPtr<ValueNode> Array)
 {
-  num_Arrays++;
+  
+	num_Arrays++;
   match('[');
+
   if (token->type == T_STRING || token->type == T_NUMBER || token->type == T_TRUE || token->type == T_FALSE || token->type == T_NULL || token->type == '{' || token->type == '[') {
-    _ELEMENTS();
+    _ELEMENTS(Array);
   }
   match(']');
 }
 
-void Compiler::Parser::_ELEMENTS()
+void Compiler::Parser::_ELEMENTS(ObjectPtr<ValueNode> Array)
 {
+
   num_ElementosArrays++;
-  _VALUE();
+
+  ObjectPtr<Value> oneValue = new Value();// Cria um Value para o par
+
+  AST::Array* currentArray = dynamic_cast<AST::Array*>((ValueNode*)Array); // cast para usar o members como uma variavel Members	
+  currentArray->addTolist(oneValue);// Adiciona o par criado ao members
+
+  _VALUE(oneValue);
+
   while (token->type == ',') {
-    advance();
+
+	advance();
     num_ElementosArrays++;
-    _VALUE();
+
+	oneValue = new Value();// Cria mais um Value para o par
+	currentArray->addTolist(oneValue);// Adiciona o par criado ao members
+
+    _VALUE(oneValue);
+  
   }
 }
-
-//
-// TODO: IMPLEMENTE OS DEMAIS METODOS DO SEU PARSER AQUI
-//

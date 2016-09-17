@@ -11,6 +11,10 @@ class Pair : public Node
 {
 public:
 	void write(Writer&) const;
+	void setValuePointer(ObjectPtr<Value> ValuePtr) {
+		ValuePointer = ValuePtr;
+	}
+	Pair(String id) : identifier(id), ValuePointer(NULL) {};
 
 protected:
 	String identifier;

@@ -32,7 +32,7 @@ namespace AST
 	//
 	// Node: generic AST node class
 	// ====
-	class Node : public Object
+	class Node : public System::Object
 	{
 	public:
 		virtual void write(Writer&) const = 0;

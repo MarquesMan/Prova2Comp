@@ -2,17 +2,17 @@
 #include "ValueNode.h"
 #endif
 
-#ifndef __True_h
-#define __True_h
+#ifndef __Number_h
+#define __Number_h
 
 namespace AST
 { // begin namespace AST
 
-	class True : public ValueNode
+	class Number : public ValueNode
 	{
 	public:
 		void write(Writer&) const;
-		True() : ValueNode("True"){};
+		Number(String lexeme) : ValueNode(lexeme) {};
 
 	};
 

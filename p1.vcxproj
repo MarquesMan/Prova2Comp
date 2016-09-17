@@ -148,7 +148,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AST\Array.cpp" />
+    <ClCompile Include="AST\False.cpp" />
     <ClCompile Include="AST\Json.cpp" />
+    <ClCompile Include="AST\Members.cpp" />
+    <ClCompile Include="AST\Null.cpp" />
+    <ClCompile Include="AST\Number.cpp" />
+    <ClCompile Include="AST\Pair.cpp" />
+    <ClCompile Include="AST\String.cpp" />
+    <ClCompile Include="AST\True.cpp" />
     <ClCompile Include="AST\Value.cpp" />
     <ClCompile Include="Compiler\ErrorHandler.cpp" />
     <ClCompile Include="Compiler\FileBuffer.cpp" />
@@ -166,6 +174,7 @@
     <ClInclude Include="AST\Members.h" />
     <ClInclude Include="AST\Node.h" />
     <ClInclude Include="AST\Null.h" />
+    <ClInclude Include="AST\Number.h" />
     <ClInclude Include="AST\Object.h" />
     <ClInclude Include="AST\Pair.h" />
     <ClInclude Include="AST\String.h" />

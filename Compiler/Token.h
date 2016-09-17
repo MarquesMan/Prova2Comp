@@ -28,7 +28,7 @@ using namespace System;
 //
 // Token: token class
 // =====
-class Token: public Object
+class Token: public System::Object
 {
 public:
   int type;

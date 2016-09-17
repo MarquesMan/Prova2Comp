@@ -1,3 +1,7 @@
+#ifndef __Value_h
+#define __Value_h
+
+
 #ifndef __Node_h
 #include "Node.h"
 #endif
@@ -6,19 +10,26 @@
 #include "ValueNode.h"
 #endif
 
-#ifndef __Value_h
-#define __Value_h
 
-using namespace AST;
+namespace AST
+{ // begin namespace AST
 
-class Value : public Node
-{
-public:
-	void write(Writer&) const;
+	class Value : public Node
+	{
+	public:
+		void write(Writer&) const;
 
-protected:
-	ObjectPtr<ValueNode> ValueNodePointer;
+		void setValue(System::ObjectPtr<ValueNode> value) {
+			this->ValueNodePointer = value;
+		}
 
-};
+		Value() : ValueNodePointer(NULL) {};
+
+	protected:
+		ObjectPtr<ValueNode> ValueNodePointer;
+
+	};
+
+}
 
 #endif // Value_h

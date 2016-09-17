@@ -15,6 +15,10 @@ using namespace AST;
 class Json : public Node
 {
 public:
+	void setValue(System::ObjectPtr<Value> value) {
+		this->Value = value;
+	}
+
 	void write(Writer&) const;
 	Json() :Value(NULL) {};
 

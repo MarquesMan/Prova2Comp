@@ -2,17 +2,20 @@
 #include "ValueNode.h"
 #endif
 
-#ifndef __String_h
-#define __String_h
+#ifndef __False_h
+#define __False_h
 
-using namespace AST;
+namespace AST
+{ // begin namespace AST
 
-class False : public ValueNode
-{
-public:
-	void write(Writer&) const;
+	class False : public ValueNode
+	{
+	public:
+		void write(Writer&) const;
+		False() : ValueNode("False") {};
 
+	};
 
-};
+}
 
 #endif // Value_h
