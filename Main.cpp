@@ -24,7 +24,7 @@ main(int argc, char** argv)
       ObjectPtr< Json > json = Compiler::Parser().parse(argv[1]);
       Writer writer;
       json->write(writer);
-
+	  getchar();
     }
     catch (const Exception& e)
     {
