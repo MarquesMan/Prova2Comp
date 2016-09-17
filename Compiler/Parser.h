@@ -4,9 +4,11 @@
 #include "Buffer.h"
 #include "ErrorHandler.h"
 #include "Token.h"
+
 #include <list>
 #include <map>
 #include <utility>
+#include "AST\Json.h"
 
 
 namespace Compiler
@@ -78,37 +80,39 @@ public:
   // Destructor
   virtual ~Parser();
 
-  void parse(const char*);
-
+  ObjectPtr< Json > parse(const char*);
+  void PrintInfo();
 protected:
   enum // tokens
   {
-    T_EOF = 0,			/* keyword EOF */
-		T_TOKEN = 256,				/* keyword TOKEN */
-		T_VOID,					/* keyword void */
-		T_IDENTIFIER,
-		T_INT,
-		T_FLOAT,
-		T_STRUCT,
+    T_EOF = 0,
+		T_TRUE = 256,
+		T_FALSE,
+		T_NULL,
+		T_NUMBER,
+    T_STRING,
     lastToken
   };
 
-  //class Integer;
-	class Function;
+  class Integer;
   class Keyword;
+
   enum // error codes
   {
     SYNTAX,
     UNEXPECTED_CHARACTER,
     EXPECTED,
     UNEXPECTED,
-		NAME_EXPECTED,
-		TOKEN_EXPECTED,
-		EXPECTED_STRUCT,
+    UNEXPECTED_CHAR_ON_STRING,
+    UNEXPECTED_EOF,
+    //
+    // TODO: DECLARE SEUS CODIGOS DE ERROS AQUI
+    //
     lastErrorCode
   };
 
   int lineNumber;
+  inline int getLineNumber() { return lineNumber; }
   ObjectPtr<Token> token;
 
   void deleteTokens();
@@ -136,68 +140,25 @@ protected:
   }
 
   void match(int);
-	String matchIdentifier();
-	//
-	void matchStruct();
 
   DECLARE_KEYWORD_TABLE(Parser);
   DECLARE_ERROR_MESSAGE_TABLE(Parser);
 
-  void start();
-	
-	struct StrcID{
-		System::String Escopo;
-		System::String Tipo;
-		System::String ID;
-		int Linha;
-	};
+  void start(ObjectPtr< Json > json);
+  
+  void _VALUE();
+  void _OBJECT();
+  void _MEMBERS();
+  void _PAIR();
+  void _ARRAY();
+  void _ELEMENTS();
 
-	struct FunctionSTRC{
-		System::String Escopo;
-		System::String TipoRetorno;
-		System::String ID;
-		int Linha;
-		std::list <StrcID> ListaParametros;
-	};
-
-	//Especificos da gramatica
-	void CompilationUnit();
-	void TypeDeclaration();
-	void MembersOpt();
-	void Member();
-	void Declaration();
-	void VariableDeclaration();
-	void FunctionDeclaration();
-	System::String Type();
-	System::String PrimitiveType();
-	System::String TypeName();
-	System::String ReturnType();
-	void ParametersOpt(struct FunctionSTRC *);
-	void Parameter(struct FunctionSTRC *);
-
-	//
-	void printInfo();
-	void VerificaReferencias();
-	void VerificaRedefinicaoVAR();
-	void VerificaRedefinicaoFOO();
-
-	//Detecção de erros semânticos
-	String Prefixo;
-	
-	//Tabela de tipos
-	std::list<System::String> ListaTipos;
-	
-	//Tabela de variaves
-	std::list <StrcID> ListaVariaveis;
-
-	//Tabela de funções
-	std::list <FunctionSTRC> ListaFuncoes;
+  int num_Objetos, num_MembrosObjetos, num_Arrays, num_ElementosArrays;
 
 private:
   ObjectPtr<Buffer> input;
 
 }; // Parser
-
 
 } // end namespace Compiler
 

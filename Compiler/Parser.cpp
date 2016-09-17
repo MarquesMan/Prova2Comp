@@ -22,6 +22,7 @@ Compiler::searchKeyword(KeywordTableEntry* k, const wchar_t* name)
   return 0;
 }
 
+
 //////////////////////////////////////////////////////////
 //
 // Parser::Keyword: keyword token class
@@ -39,21 +40,17 @@ public:
 }; // Parser::Keyword
 
 
-//////////////////////////////////////////////////////////TODO
+//////////////////////////////////////////////////////////
 //
 // Parser implementation
 // ======
 DEFINE_KEYWORD_TABLE(Parser)
-	KEYWORD("void", T_VOID, 0),
-	KEYWORD("struct", T_STRUCT, 0),
-	KEYWORD("int", T_INT, 0),
-	KEYWORD("float", T_FLOAT, 0),
-	KEYWORD("Indentifier", T_IDENTIFIER, 0),
+	KEYWORD("true", T_TRUE, 0),
+	KEYWORD("false", T_FALSE, 0),
+	KEYWORD("null", T_NULL, 0),
 END_KEYWORD_TABLE;
 
 DEFINE_ERROR_MESSAGE_TABLE(Parser, ErrorHandler)
-	ERROR_MESSAGE(EXPECTED_STRUCT,
-	"Expected Struct"),
   ERROR_MESSAGE(SYNTAX,
     "Syntax error"),
   ERROR_MESSAGE(UNEXPECTED_CHARACTER,
@@ -62,28 +59,40 @@ DEFINE_ERROR_MESSAGE_TABLE(Parser, ErrorHandler)
     "Expected '%C'"),
   ERROR_MESSAGE(UNEXPECTED,
     "Unexpected '%ls'"),
-	ERROR_MESSAGE(NAME_EXPECTED,
-	"Unexpected '%ls'"),
-	ERROR_MESSAGE(TOKEN_EXPECTED,
-	"Expected Token"),
+  ERROR_MESSAGE(UNEXPECTED_CHAR_ON_STRING,
+    "Unexpected char inside string definition '%c'"),
+  ERROR_MESSAGE(UNEXPECTED_EOF,
+    "Unexpected EOF inside string definition"),
   //
   // TODO: DEFINA SUAS MENSAGENS DE ERRO AQUI
   //
 END_ERROR_MESSAGE_TABLE;
 
-void
+ObjectPtr< Json >
 Parser::parse(const char* fileName)
 {
   File file;
+  ObjectPtr< Json > json;
 
   if (!file.open(fileName, File::readOnly))
-    error(L"error: Could not find module file '%S'\n", fileName);
+    error(L"Nao foi possivel encontrar o arquivo '%S'\n", fileName);
 
   FileBuffer* input = new FileBuffer(file);
 
   setInput(input);
   file.close();
-  start();
+
+  json = new Json();
+
+  start(json);
+
+  return json;
+
+}
+
+void Compiler::Parser::PrintInfo()
+{
+  std::cout << "Objetos: \t" << num_Objetos << "\nMembros: \t" << num_MembrosObjetos << "\nArrays: \t" << num_Arrays << "\nElementos: \t" << num_ElementosArrays;
 }
 
 Parser::~Parser()
@@ -134,37 +143,158 @@ _space:
       lineNumber++;
   if (*buffer() == 0)
     return new Token(T_EOF);
-
-	//indentificador
-	buffer().startLexeme();
-	if (isalpha(*buffer()) || *buffer() == '_')
-	{
-		while (isalnum(++buffer()) || *buffer() == '_')
-			;
-
-		String lexeme = buffer().getLexeme();
-		KeywordTableEntry* k = findKeyword(lexeme);//verifica se eh uma palavra reservada
-
-		return k == 0 ? new Token(T_IDENTIFIER, lexeme) : new Keyword(k);
-	}
-
-
-	int c = buffer()++;
 	
-	switch (c)
-	{
-		case '{':
-		case '}':
-		case '(':
-		case ')':
-		case ',':
-		case '.':
-		case ';':
-			break;
-		default:
-			error(UNEXPECTED_CHARACTER, c);
-	}
-	return new Token(c, buffer().getLexeme());
+  //Inicia lexeme 
+  buffer().startLexeme();
+  
+  //String
+  if (*buffer() == '\"') {
+    int c = ++buffer();
+
+    //String vazia
+    if (c == '\"') {
+      String lexeme = buffer().getLexeme();
+      return new Token(T_STRING, lexeme);
+    }
+
+    //Varre a string
+    while (c != '\"') {
+      if (c == EOF)
+        error(UNEXPECTED_EOF);
+      
+      //Se for algum dos char proibidos, retorne erro
+      if (c == '\t' || c == '\n')
+        error(UNEXPECTED_CHAR_ON_STRING, c);
+
+      //Caso seja uma barra invertida
+      if (c == '\\') {
+        c = ++buffer();
+        switch (c) {
+          case '\"':
+          case '\\':
+          case 't':
+          case 'n':
+            break;
+          default:
+            error(UNEXPECTED_CHAR_ON_STRING, c);
+        }
+      }
+      //Caso seja qualquer outro char ascii, ta tudo certo. Pode continuar no loop até encontrar o fim da string
+      //Avança para char seguinte
+      c = ++buffer();
+    }
+    ++buffer();// Por algum motivo que eu não entendi, eu preciso avançar o buffer aqui se não ele ignora a ultima aspas dupla (?????)
+    
+    //Retorna o token com o lexeme da string
+    String lexeme = buffer().getLexeme();
+    return new Token(T_STRING, lexeme);
+  }
+  
+  //Number
+  if (*buffer() == '-' || (*buffer() >= '0' && *buffer() <= '9')) {
+    //Se começar com '-'
+    if (*buffer() == '-')
+      ++buffer();
+
+    //Se o Number começar com 0, verifique se o proximo char não é um digito.
+    if (*buffer() == '0') {
+      ++buffer();
+
+      //É um digito
+      if (*buffer() >= '0' && *buffer() <= '9') {
+        int c = *buffer();
+        error(UNEXPECTED_CHARACTER, c);
+      }
+
+      //Não é um digito.
+      if (*buffer() == '.')
+        goto _FRACIONARIA;
+      if (*buffer() == 'e' || *buffer() == 'E')
+        goto _EXPONENCIAL;
+      //apenas um digito 0
+      return new Token(T_NUMBER, buffer().getLexeme());
+    }
+
+    int c = *buffer();
+    //Avança enquanto forem digitos
+    do {
+      c = ++buffer();
+    } while (c >= '0' && c <= '9');
+      
+    //Fração
+    if (c == '.') {
+    _FRACIONARIA:
+      c = ++buffer();
+
+      //Se houverem digitos
+      if (c >= '0' && c <= '9') {
+        //Avança enquanto forem digitos
+        do {
+          c = ++buffer();
+        } while (c >= '0' && c <= '9');
+
+        //Acabaram os digitos. Mas verifique se existe uma parte exponencial
+        if (c == 'e' || c == 'E')
+          goto _EXPONENCIAL;
+        //Não tem parte exponencial. Então o numero foi finalizado
+        return new Token(T_NUMBER, buffer().getLexeme());
+      }
+      //Caso contrario, erro de sintaxe
+      else
+        error(UNEXPECTED_CHARACTER, c);
+    }
+
+    //Exponencial
+    if (c == 'e' || c == 'E') {
+    _EXPONENCIAL:
+      c = ++buffer();
+      if (c == '-' || c == '+') {
+        c = ++buffer();
+      }
+      if (c >= '0' && c <= '9') {
+        //Avança enquanto forem digitos
+        do {
+          c = ++buffer();
+        } while (c >= '0' && c <= '9');
+        return new Token(T_NUMBER, buffer().getLexeme());
+      }
+      //Caso contrario, erro de sintaxe
+      else
+        error(UNEXPECTED_CHARACTER, c);
+    }
+
+    //Se não tiver parte fracionaria nem parte exponencial, é apenas um numero
+     return new Token(T_NUMBER, buffer().getLexeme());
+  }
+
+  //Palavra 'reservada'
+  if (isalpha(*buffer()))
+  {
+    while (isalnum(++buffer()));
+
+    String lexeme = buffer().getLexeme();
+    KeywordTableEntry* k = findKeyword(lexeme);
+    //Se não for nenhuma das palavras reservadas, retorne erro de sintaxe
+    if (k == 0)
+      error(SYNTAX);
+    return new Keyword(k);
+  }
+
+  int c = buffer()++;
+  //Tokens de char unico
+  switch (c)
+  {
+  case '{':
+  case '}':
+  case '[':
+  case ']':
+  case ',':
+  case ':':
+    break;
+  default:
+    error(UNEXPECTED_CHARACTER, c);
+  }
+  return new Token(c, buffer().getLexeme());
 }
 
 Token*
@@ -186,8 +316,6 @@ Parser::match(int c)
 //|  match                                               |
 //[]----------------------------------------------------[]
 {
-	int value = token->type;
-
   if (token->type != c)
   {
     if (token->type == T_EOF)
@@ -197,311 +325,96 @@ Parser::match(int c)
   advance();
 }
 
-String
-Parser::matchIdentifier()
-//[]----------------------------------------------------[]
-//|  matchIdentifier                                     |
-//[]----------------------------------------------------[]
-{
-	if (token->type != T_IDENTIFIER){
-		error(NAME_EXPECTED);
-	}
-	String identifier = token->lexeme;
-
-	advance();
-	return identifier;
-}
-
-void Parser::matchStruct(){
-	if (token->type == T_STRUCT)
-	{
-		advance();
-	}
-	else
-		error(EXPECTED_STRUCT);
-}
-
 void
-Parser::printInfo(){
-	//Imprime os tipos declarados
-	std::wcout << "Lista de tipos definidos:\n";
-	for (std::list<System::String>::iterator i = this->ListaTipos.begin(); i != this->ListaTipos.end(); i++)
-		std::wcout << "     " << (*i).c_str() << "\n";
-
-
-	std::wcout << "\nLista de variaveis declarados:\n";
-	//Imprime as variaves declaradas. Junto com seus tipos;
-	for (std::list<StrcID>::iterator i = this->ListaVariaveis.begin(); i != this->ListaVariaveis.end(); i++)
-		std::wcout << (*i).Linha << ":\t" << (*i).Escopo.c_str() << " " << (*i).Tipo.c_str() << " " << (*i).ID.c_str()  << "\n";
-
-
-	std::wcout << "\nLista de funcoes e seus parametros:\n";
-	//Imprime as funcoes junto com suas listas de parametros
-	for (std::list<FunctionSTRC>::iterator i = this->ListaFuncoes.begin(); i != this->ListaFuncoes.end(); i++){
-		std::wcout << (*i).Linha << ":\t" << (*i).Escopo.c_str() << " " << (*i).TipoRetorno.c_str() << " " << (*i).ID.c_str() << "(\n";
-
-		for (std::list<StrcID>::iterator i2 = (*i).ListaParametros.begin(); i2 != (*i).ListaParametros.end(); i2++)
-			std::wcout << "\t" << (*i2).Tipo.c_str() << " " << (*i2).ID.c_str() << "\n";
-		std::wcout << ")\n";
-
-	}
-}
-
-void
-Parser::VerificaReferencias(){
-	//para cada variavel na lista de variaves verificar se existe um tipo correspondente
-	for (std::list<StrcID>::iterator i = this->ListaVariaveis.begin(); i != this->ListaVariaveis.end(); i++){
-		System::String Tipo = (*i).Tipo;
-		System::String Escopo = (*i).Escopo;
-		bool VariavelOK = false;
-
-		for (std::list<System::String>::iterator i2 = this->ListaTipos.begin(); i2 != this->ListaTipos.end(); i2++){
-			//Dentro do escopo da variavel
-			if (Tipo == "float" || Tipo == "int")
-				VariavelOK = true;
-			if (Escopo + Tipo == (*i2)){//ok
-				VariavelOK = true;
-				break;
-			}
-			//Verifica se tipo existe no escopo global
-			if (Tipo == (*i2)){//ok
-				VariavelOK = true;
-				break;
-			}
-		}
-		//Tiponão encontrado
-		if (!VariavelOK)
-			std::wcout << "Referencia a tipo \"" << Tipo.c_str() << "\" indefinido na linha " << (*i).Linha <<".\n";
-	}
-	//Para cada tipo de retorno
-	for (std::list<FunctionSTRC>::iterator i = this->ListaFuncoes.begin(); i != this->ListaFuncoes.end(); i++){
-		System::String Tipo = (*i).TipoRetorno;
-		System::String Escopo = (*i).Escopo;
-		bool FooOk = false;
-		
-		if (Tipo == "void" || Tipo == "float" || Tipo == "int")
-			FooOk = true;
-		else{
-			for (std::list<System::String>::iterator i2 = this->ListaTipos.begin(); i2 != this->ListaTipos.end(); i2++){
-				//Dentro do escopo da variavel
-				if (Escopo + Tipo == (*i2)){//ok
-					FooOk = true;
-					break;
-				}
-				//Verifica se tipo existe no escopo global
-				if (Tipo == (*i2)){//ok
-					FooOk = true;
-					break;
-				}
-			}
-		}
-		if (!FooOk)
-			std::wcout << "Referencia a tipo \"" << (*i).TipoRetorno.c_str() << "\" indefinido na linha " << (*i).Linha << " em definição de função.\n";
-		FooOk = false;
-		//Parametros
-		for (std::list<StrcID>::iterator i2 = (*i).ListaParametros.begin(); i2 != (*i).ListaParametros.end(); i2++){
-			Tipo = (*i2).Tipo;
-			
-			if (Tipo == "float" || Tipo == "int")
-				FooOk = true;
-			for (std::list<System::String>::iterator i2 = this->ListaTipos.begin(); i2 != this->ListaTipos.end(); i2++){
-				//Dentro do escopo da variavel
-				if (Escopo + Tipo == (*i2)){//ok
-					FooOk = true;
-					break;
-				}
-				//Verifica se tipo existe no escopo global
-				if (Tipo == (*i2)){//ok
-					FooOk = true;
-					break;
-				}
-			}
-			if (!FooOk)
-				std::wcout << "Referencia a tipo \"" << Tipo.c_str() << "\" indefinido na linha " << (*i2).Linha << " em definição de função.\n";
-		}
-	}
-}
-
-void
-Parser::VerificaRedefinicaoVAR(){
-	//para cada var
-	for (std::list<StrcID>::iterator i = this->ListaVariaveis.begin(); i != this->ListaVariaveis.end(); i++)
-	{
-		for (std::list<StrcID>::iterator i2 = this->ListaVariaveis.begin(); i2 != this->ListaVariaveis.end(); i2++)
-		{
-			if ((*i).Escopo == (*i2).Escopo && (*i).ID == (*i2).ID && (*i).Linha != (*i2).Linha)
-				std::wcout << "Redefinição de variavel nas linhas " << (*i).Linha << " e " << (*i2).Linha << "\n";
-		}
-	}
-	//Para cada tipo
-	for (std::list<System::String>::iterator i = this->ListaTipos.begin(); i != this->ListaTipos.end(); i++){
-		for (std::list<System::String>::iterator i2 = this->ListaTipos.begin(); i2 != this->ListaTipos.end(); i2++){
-			if ((*i) == (*i2))
-				std::wcout << "Redefinição de tipo \"" << (*i).c_str() << "\".\n";
-		}
-	}
-}
-
-void
-Parser::start()
+Parser::start(ObjectPtr< Json > json)
 //[]----------------------------------------------------[]
 //|	start																								 |
 //[]----------------------------------------------------[]
 {
-	this->Prefixo = "";
-	CompilationUnit();
-	this->printInfo();
-
-	//Se as declarações de variaveis e funcoes são de tipos existentes.
-	this->VerificaReferencias();
-
-	//Se variaveis no mesmo escopo possuem IDs diferentes.
-	this->VerificaRedefinicaoVAR();
-
-	//Se funções com mesmo ID possuem parametros diferentes
-	//this->VerificaRedefinicaoFOO();
+  num_Objetos = num_MembrosObjetos = num_Arrays = num_ElementosArrays = 0;
+  _VALUE();
+  PrintInfo();
 }
 
-
-void Parser::CompilationUnit()
+void Compiler::Parser::_VALUE()
 {
-	while (token->type != T_EOF)
-		TypeDeclaration();
+  //Object
+  if (token->type == '{') {
+    _OBJECT();
+    return;
+  }
+
+  //Array
+  if (token->type == '[') {
+    _ARRAY();
+    return;
+  }
+
+  //String, Number, True, False, Null
+  if (token->type == T_STRING || token->type == T_NUMBER || token->type == T_TRUE || token->type == T_FALSE || token->type == T_NULL) {
+    advance();
+    return;
+  }
+  //Se não for nada disso, erro
+  std::wcout << token->type << '\n';
+  error(UNEXPECTED_CHARACTER, token->type);
 }
-void Parser::TypeDeclaration()
+
+void Compiler::Parser::_OBJECT()
 {
-	//Salva prefixo
-	String LastPrefixo = this->Prefixo;
-	matchStruct();
+  num_Objetos++;
+  match('{');
+  //se ja for o final do objeto, retorne
+  if (token->type == '}') {
+    match('}');
+    return;
+  }
+  //Entao o objeto não é vazio. Chame membros
+  _MEMBERS();
 
-	//Recupera ID do novo tipo
-	String ID_Tipo = matchIdentifier();
-
-	this->ListaTipos.push_back(this->Prefixo + ID_Tipo);
-
-	//Atualiza prefixo
-	this->Prefixo = this->Prefixo + ID_Tipo + ".";
-
-	match('{');
-	MembersOpt();
-	match('}');
-
-	//Retorna prefixo anterior
-	this->Prefixo = LastPrefixo;
+  //Assim que retornar de membros, de match no '}'
+  match('}');
 }
-void Parser::MembersOpt(){
-	while (token->type != '}')
-		Member();
 
+void Compiler::Parser::_MEMBERS()
+{
+  num_MembrosObjetos++;
+  _PAIR();
+  while (token->type == ',') {
+    advance();
+    num_MembrosObjetos++;
+    _PAIR();
+  }
 }
-void Parser::Member(){
 
-	if (token->type == T_STRUCT)
-		TypeDeclaration();
-	else
-		Declaration();
+void Compiler::Parser::_PAIR()
+{
+  match(T_STRING);
+  match(':');
+  _VALUE();
 }
-void Parser::Declaration(){
-	//Variable: (	      INT | FLOAT | TypeName) INDENTIFIER ';'
-	//Function: (VOID | INT | FLOAT | TypeName) INDENTIFIER '('
-	//verifica qual caractere aparece primeiro '(' ou ';'.
-	auto T = lookahead(token, 1);
-	for (; T->type != ';' && T->type != '('; T = lookahead(T, 1));
 
-	if (T->type == ';')
-		VariableDeclaration();
-	else
-		FunctionDeclaration();
+void Compiler::Parser::_ARRAY()
+{
+  num_Arrays++;
+  match('[');
+  if (token->type == T_STRING || token->type == T_NUMBER || token->type == T_TRUE || token->type == T_FALSE || token->type == T_NULL || token->type == '{' || token->type == '[') {
+    _ELEMENTS();
+  }
+  match(']');
 }
-void Parser::VariableDeclaration(){
 
-	struct StrcID Var1;
-	
-	Var1.Tipo		= Type();
-	Var1.ID			= matchIdentifier();
-	Var1.Escopo = this->Prefixo;
-	Var1.Linha	= lineNumber;
-	match(';');
-
-	//Insere na tabela
-	this->ListaVariaveis.push_back(Var1);
-
-	//Verifica se tipo existe na 
-
+void Compiler::Parser::_ELEMENTS()
+{
+  num_ElementosArrays++;
+  _VALUE();
+  while (token->type == ',') {
+    advance();
+    num_ElementosArrays++;
+    _VALUE();
+  }
 }
-void Parser::FunctionDeclaration(){
-	struct FunctionSTRC Var1;
-	Var1.TipoRetorno	= ReturnType();
-	Var1.ID						= matchIdentifier();
-	Var1.Escopo				= this->Prefixo;
-	Var1.Linha				= this->lineNumber;
 
-	//Altera o escopo/prefixo
-	this->Prefixo = this->Prefixo + "." + Var1.ID + "_";
-
-	match('(');
-	ParametersOpt(&Var1);
-	match(')');
-	match(';');
-
-	//retorna o prefixo/escopo correto
-	this->Prefixo = Var1.Escopo;
-	this->ListaFuncoes.push_back(Var1);
-}
-System::String Parser::Type(){
-	//Retorna uma string contendo o nome do tipo da variavel
-	if (token->type == T_INT || token->type == T_FLOAT)
-		return PrimitiveType();
-	else
-		return TypeName();
-}
-System::String Parser::PrimitiveType(){
-	//Retorna uma string contendo o nome do tipo da variavel
-	System::String tipo = token->lexeme;
-	if (token->type == T_INT)
-		tipo = "int";
-	else
-		tipo = "float";
-	advance();
-	return tipo;
-}
-System::String Parser::TypeName(){
-	//Retorna uma string contendo o nome do tipo da variavel
-	System::String tipo;
-
-	tipo += matchIdentifier();
-	while (token->type == '.'){
-		match('.');
-		tipo = tipo + "." + matchIdentifier();
-	}
-	return tipo;
-}
-System::String Parser::ReturnType(){
-	//Retorna uma string contendo o nome do tipo da variavel
-	if (token->type == T_VOID)
-	{
-		System::String tipo = "void";
-		advance();
-		return tipo;
-	}
-	else
-		return Type();
-}
-void Parser::ParametersOpt(struct FunctionSTRC *Var1){
-	if (token->type == ')')
-		return;
-
-	Parameter(Var1);
-	while (token->type == ',')
-		Parameter(Var1);
-}
-void Parser::Parameter(struct FunctionSTRC *Var1){
-	//Insere o parametro na lista
-	Parser::StrcID Var2;
-	Var2.Tipo		= Type();
-	Var2.Escopo = this->Prefixo;
-	Var2.ID			= matchIdentifier();
-	Var2.Linha	= this->lineNumber;
-	
-	Var1->ListaParametros.push_back(Var2);
-}
+//
+// TODO: IMPLEMENTE OS DEMAIS METODOS DO SEU PARSER AQUI
+//

@@ -1,23 +1,23 @@
-#ifndef __Node_h
-#include "Node.h"
-#endif
-
 #ifndef __ValueNode_h
 #include "ValueNode.h"
 #endif
 
-#ifndef __Value_h
-#define __Value_h
+#ifndef __Pair_h
+#include "Pair.h"
+#endif
+
+#ifndef __Members_h
+#define __Members_h
 
 using namespace AST;
 
-class Value : public Node
+class Members : public ValueNode
 {
 public:
 	void write(Writer&) const;
 
 protected:
-	ObjectPtr<ValueNode> ValueNodePointer;
+	template<Pair> PairList list;
 
 };
 

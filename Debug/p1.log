@@ -1,18 +1,1 @@
-﻿  Writer.cpp
-  WString.cpp
-  Object.cpp
-  File.cpp
-  Main.cpp
-  Parser.cpp
-c:\users\marqu\downloads\compiladores\victorgaiva\compiler\parser.cpp(118): warning C4477: 'swprintf' : format string '%ls' requires an argument of type 'wchar_t *', but variadic argument 1 has type 'const char *'
-  c:\users\marqu\downloads\compiladores\victorgaiva\compiler\parser.cpp(118): note: consider using '%hs' in the format string
-  c:\users\marqu\downloads\compiladores\victorgaiva\compiler\parser.cpp(118): note: consider using '%Ts' in the format string
-c:\users\marqu\downloads\compiladores\victorgaiva\compiler\parser.cpp(131): warning C4102: '_space': unreferenced label
-  FileBuffer.cpp
-  ErrorHandler.cpp
-  Value.cpp
-  Json.cpp
-  Generating Code...
-Json.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
-  p1.vcxproj -> C:\Users\marqu\Downloads\Compiladores\VictorGaiva\Debug\p1.exe
-  p1.vcxproj -> Debug\p1.pdb (Full PDB)
+﻿
