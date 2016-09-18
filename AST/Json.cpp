@@ -5,12 +5,10 @@
 void Json::write(Writer & writer) const
 {
 	
-	writer.write( L"{\n" );
+	writer.beginBlock();
 	if(this->Value!=NULL){
-		writer.beginBlock();
 		this->Value->write(writer);
-		writer.endBlock();
 	}
-	writer.write( L"}\n");
+	writer.endBlock();
 
 }

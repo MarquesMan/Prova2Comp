@@ -6,18 +6,21 @@
 #ifndef __AST_Object_h
 #define __AST_Object_h
 
-using namespace AST;
+namespace AST
+{ // begin namespace AST
 
-class Object : public Value 
-{
-public:
-	void write(Writer&) const;
+	class Object : public Value
+	{
+	public:
+		void write(Writer&) const;
 
-protected:
-
-
+	protected:
 
 
-};
+
+
+	};
+
+}
 
 #endif // Value_h
